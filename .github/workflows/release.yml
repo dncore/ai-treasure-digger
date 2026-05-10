@@ -59,8 +59,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'AI Treasure Digger v__VERSION__'
+          tagName: ${{ github.ref_name }}
+          releaseName: 'AI Treasure Digger ${{ github.ref_name }}'
           releaseBody: |
             See the assets below to download and install.
 
@@ -72,24 +72,29 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-      # Upload portable Windows exe (no installer, just run directly)
       - name: Package portable Windows build
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: pwsh
         run: |
           $exe = "src-tauri/target/release/ai-treasure-digger.exe"
+          if (-Not (Test-Path $exe)) {
+            Write-Error "Portable exe not found at $exe"
+            exit 1
+          }
           $dir = "portable-package"
-          New-Item -ItemType Directory -Force -Path $dir
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
           Copy-Item $exe "$dir/AI Treasure Digger.exe"
-          New-Item -ItemType File -Force -Path "$dir/portable.marker"
-          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
-          Compress-Archive -Path "$dir/*" -DestinationPath "AI-Treasure-Digger_${version}_x64_portable.zip"
+          New-Item -ItemType File -Force -Path "$dir/portable.marker" | Out-Null
+          $tag = "${{ github.ref_name }}"
+          Compress-Archive -Path "$dir/*" -DestinationPath "AI-Treasure-Digger_${tag}_x64_portable.zip"
+          Write-Host "Created AI-Treasure-Digger_${tag}_x64_portable.zip"
 
       - name: Upload portable Windows build
         if: ${{ matrix.platform == 'windows-latest' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          files: AI-Treasure-Digger_*_x64_portable.zip
-          draft: true
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          ZIP="AI-Treasure-Digger_${TAG}_x64_portable.zip"
+          gh release upload "$TAG" "$ZIP" --clobber
