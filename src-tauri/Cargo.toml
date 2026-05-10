@@ -1,0 +1,34 @@
+[package]
+name = "ai-treasure-digger"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ai_treasure_digger_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+windows = { version = "0.58", features = [
+  "Win32_System_Threading",
+  "Win32_Foundation",
+  "Win32_System_ProcessStatus",
+  "Win32_Networking_WinSock",
+  "Win32_System_Registry",
+  "Win32_Security",
+  "Win32_System_Com",
+  "Win32_Data_Xml",
+] }
+windows-core = "0.58"
+reqwest = { version = "0.12", features = ["json"] }
+chrono = "0.4"
+log = "0.4"
+env_logger = "0.11"
+fern = "0.7"
