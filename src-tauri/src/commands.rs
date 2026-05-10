@@ -1,5 +1,5 @@
 use crate::models::{
-    AppSettings, BatchResult, CleanupCategory, CleanupTarget, DetectedService, DetectionMethod,
+    AppSettings, BatchResult, CleanupTarget, DetectedService,
     ResourceSummary, RiskLevel, ServiceType,
 };
 use crate::scanner::{docker, port, process, resource, wsl};

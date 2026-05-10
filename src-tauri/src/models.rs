@@ -131,6 +131,14 @@ pub const KEYWORD_AI_APP: &[&str] = &["langchain", "chat", "bot", "agent"];
 pub const KEYWORD_WEB_SERVICE: &[&str] = &["flask", "fastapi", "gradio", "streamlit", "uvicorn", "jupyter", "serve"];
 pub const KEYWORD_API: &[&str] = &["api", "endpoint"];
 
+/// 所有关键词合集，用于 task_scheduler 的简单匹配
+pub const AI_KEYWORDS: &[&str] = &[
+    "ollama", "llama", "gpt", "openai", "model", "inference",
+    "langchain", "chat", "bot", "agent",
+    "flask", "fastapi", "gradio", "streamlit", "uvicorn", "jupyter", "serve",
+    "api", "endpoint",
+];
+
 /// 检查命令行是否满足软匹配条件（≥2 个不同类别关键词）
 pub fn soft_match(cmdline: &str) -> bool {
     let lower = cmdline.to_lowercase();

@@ -1,4 +1,4 @@
-use crate::models::soft_match;
+use crate::models::{AI_KEYWORDS, soft_match};
 
 pub struct TaskEntry {
     pub name: String,
@@ -25,7 +25,6 @@ pub fn scan_task_scheduler() -> Vec<TaskEntry> {
             let trimmed = line.trim();
 
             if let Some(val) = trimmed.strip_prefix("Task Name:") {
-                // Save previous entry
                 if !current_name.is_empty() {
                     let is_ai = soft_match(&current_command);
                     entries.push(TaskEntry {
@@ -42,7 +41,6 @@ pub fn scan_task_scheduler() -> Vec<TaskEntry> {
             }
         }
 
-        // Save last entry
         if !current_name.is_empty() {
             let cmd_lower = current_command.to_lowercase();
             let is_ai = AI_KEYWORDS.iter().any(|kw| cmd_lower.contains(kw));

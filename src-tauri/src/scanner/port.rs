@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::models::PortBinding;
 
-/// 扫描端口并返回 PID → 端口列表 的映射
 pub fn scan_ports_with_pid() -> (Vec<PortBinding>, HashMap<u32, Vec<PortBinding>>) {
     let ports = scan_ports_raw();
     let mut pid_map: HashMap<u32, Vec<PortBinding>> = HashMap::new();
@@ -17,18 +16,18 @@ pub fn scan_ports_with_pid() -> (Vec<PortBinding>, HashMap<u32, Vec<PortBinding>
 
 #[cfg(target_os = "windows")]
 fn scan_ports_raw() -> Vec<PortBinding> {
-    use std::ptr;
-    use windows::Win32::Networking::WinSock::{
-        MIB_TCPTABLE_OWNER_PID, GetExtendedTcpTable, TCP_TABLE_OWNER_PID_ALL,
+    use windows::Win32::NetworkManagement::IpHelper::{
+        GetExtendedTcpTable, MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID,
+        TCP_TABLE_OWNER_PID_ALL,
     };
+    use windows::Win32::Foundation::BOOL;
 
     let mut ports = Vec::new();
 
-    // TCP
     let mut tcp_size: u32 = 0;
     unsafe {
         let _ = GetExtendedTcpTable(
-            ptr::null_mut(), &mut tcp_size, false,
+            None, &mut tcp_size, BOOL(0),
             2, // AF_INET
             TCP_TABLE_OWNER_PID_ALL, 0,
         );
@@ -39,10 +38,13 @@ fn scan_ports_raw() -> Vec<PortBinding> {
         unsafe {
             let table = buffer.as_mut_ptr() as *mut MIB_TCPTABLE_OWNER_PID;
             if GetExtendedTcpTable(
-                table as *mut _, &mut tcp_size, false,
+                Some(buffer.as_mut_ptr() as *mut _),
+                &mut tcp_size,
+                BOOL(0),
                 2,
-                TCP_TABLE_OWNER_PID_ALL, 0,
-            ).is_ok()
+                TCP_TABLE_OWNER_PID_ALL,
+                0,
+            ) == 0
             {
                 let count = (*table).dwNumEntries as usize;
                 let entries = std::slice::from_raw_parts((*table).table.as_ptr(), count);
@@ -98,7 +100,6 @@ fn scan_ports_raw() -> Vec<PortBinding> {
     ports
 }
 
-/// 向后兼容：只返回端口列表
 pub fn scan_ports() -> Vec<PortBinding> {
     scan_ports_raw()
 }

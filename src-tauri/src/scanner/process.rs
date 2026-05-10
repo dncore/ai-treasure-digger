@@ -13,13 +13,13 @@ pub struct ProcessInfo {
 
 #[cfg(target_os = "windows")]
 fn get_process_list() -> Vec<ProcessInfo> {
-    use std::ptr;
     use windows::Win32::System::Threading::{
-        OpenProcess, QueryFullProcessImageNameW, EnumProcesses,
-        PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
+        OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
     };
-    use windows::Win32::Foundation::{CloseHandle, HANDLE, MAX_PATH};
-    use windows::core::PCWSTR;
+    use windows::Win32::System::ProcessStatus::EnumProcesses;
+    use windows::Win32::Foundation::{CloseHandle, MAX_PATH};
+    use windows::core::{PCWSTR, PWSTR};
+    use windows::Win32::System::Threading::{PROCESS_NAME_FORMAT, QueryFullProcessImageNameW};
 
     let mut pids = [0u32; 4096];
     let mut bytes_returned = 0u32;
@@ -37,7 +37,12 @@ fn get_process_list() -> Vec<ProcessInfo> {
                 let exe_path = {
                     let mut size = MAX_PATH as u32;
                     let mut buffer = [0u16; MAX_PATH as usize];
-                    if QueryFullProcessImageNameW(handle, 0, PCWSTR(buffer.as_mut_ptr()), &mut size).is_ok() {
+                    if QueryFullProcessImageNameW(
+                        handle,
+                        PROCESS_NAME_FORMAT(0),
+                        PWSTR(buffer.as_mut_ptr()),
+                        &mut size,
+                    ).is_ok() {
                         String::from_utf16_lossy(&buffer[..size as usize])
                     } else {
                         String::new()
@@ -113,25 +118,20 @@ fn get_process_list() -> Vec<ProcessInfo> {
     result
 }
 
-/// 两级检测：第一层硬匹配，第二层多类别关键词共现
 fn classify_process(exe: &str, cmdline: &str) -> Option<(ServiceType, DetectionMethod)> {
     let exe_lower = exe.to_lowercase();
     let cmd_lower = cmdline.to_lowercase();
 
-    // 第一层：硬匹配
     for rule in HARD_MATCH_RULES {
         if cmd_lower.contains(rule.pattern) {
             return Some((rule.service_type.clone(), DetectionMethod::HardMatch));
         }
     }
 
-    // 进程类型判定（exe 路径）
     let is_node = exe_lower.contains("node") || exe_lower.contains("nodejs");
     let is_python = exe_lower.contains("python");
 
-    // 硬匹配也覆盖 Node/Python 进程本身
     if is_node {
-        // 第二层：软匹配（多类别共现）
         if soft_match(cmdline) {
             return Some((ServiceType::NodeProcess, DetectionMethod::SoftMatch));
         }
@@ -151,24 +151,20 @@ fn calculate_risk_level(
     cpu_usage: f32,
     memory_usage: u64,
 ) -> RiskLevel {
-    // WSL / Docker = Critical
     match service_type {
         ServiceType::WslInstance => return RiskLevel::Critical,
         ServiceType::DockerContainer => return RiskLevel::Critical,
         _ => {}
     }
 
-    // 有活跃端口监听 = Danger（有客户端在连接）
     if !ports.is_empty() {
         return RiskLevel::Danger;
     }
 
-    // 有资源占用 = Caution
     if cpu_usage > 0.1 || memory_usage > 10 * 1024 * 1024 {
         return RiskLevel::Caution;
     }
 
-    // 什么都没有 = Safe
     RiskLevel::Safe
 }
 
@@ -178,7 +174,6 @@ pub fn scan_processes(port_map: &HashMap<u32, Vec<PortBinding>>) -> Vec<Detected
 
     for proc in processes {
         if let Some((service_type, detection_method)) = classify_process(&proc.exe_path, &proc.command_line) {
-            // 关联端口
             let pid_ports = port_map.get(&proc.pid).cloned().unwrap_or_default();
 
             let risk = calculate_risk_level(&service_type, &pid_ports, 0.0, 0);
