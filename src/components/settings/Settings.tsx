@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSettings, saveSettings } from "../../lib/api";
+import { getSettings, saveSettings, restartAsAdmin } from "../../lib/api";
 import { ToastContext } from "../../App";
 import type { AppSettings } from "../../lib/types";
 
@@ -108,6 +108,27 @@ export function Settings() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Logs</h2>
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>Log directory: {settings.log_dir}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">System</h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              try {
+                await restartAsAdmin();
+              } catch (e) {
+                ToastContext.addToast({ type: "error", title: "Failed to restart", detail: String(e) });
+              }
+            }}
+            className="rounded border border-amber-700 px-4 py-2 text-sm text-amber-300 hover:bg-amber-950"
+          >
+            Restart as Administrator
+          </button>
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            Required to stop some processes
+          </span>
+        </div>
       </section>
 
       <button

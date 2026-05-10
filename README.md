@@ -174,6 +174,34 @@ The workflow builds for 4 platforms and creates a GitHub Release:
 | macOS (Intel) | `.dmg` |
 | Linux | `.deb`, `.AppImage` |
 
+## Windows Defender Warning
+
+When running the portable executable for the first time, Windows Defender may show a warning about an "unknown publisher". This happens because the executable is not code-signed.
+
+**Why this happens:**
+- Code signing certificates cost $200-400/year for individuals
+- Windows SmartScreen treats unsigned executables as potentially unsafe
+- This is normal for open-source projects without commercial backing
+
+**Workarounds:**
+1. Click "More info" → "Run anyway" in the SmartScreen dialog
+2. Or build from source: `pnpm tauri build` creates a local unsigned build
+3. For organizations: consider purchasing an EV code signing certificate
+
+**Future solution:**
+We're exploring free code signing options for open-source projects via [SignPath](https://signpath.org/) (free for OSS) + [AppVeyor](https://www.appveyor.com/).
+
+## Administrator Privileges
+
+Some processes cannot be stopped without administrator privileges. If you see "Access is denied" errors:
+
+1. Open Settings in the app
+2. Click "Restart as Administrator"
+3. Confirm the UAC prompt
+4. The app will restart with elevated privileges
+
+This is required because `taskkill` needs admin rights to terminate certain processes.
+
 ## License
 
 MIT
@@ -349,6 +377,34 @@ git push origin v0.1.0
 | macOS（Apple Silicon） | `.dmg` |
 | macOS（Intel） | `.dmg` |
 | Linux | `.deb`、`.AppImage` |
+
+## Windows Defender 警告
+
+首次运行便携版可执行文件时，Windows Defender 可能显示"未知发布者"警告。这是因为可执行文件没有代码签名。
+
+**原因：**
+- 代码签名证书对个人用户需 $200-400/年
+- Windows SmartScreen 将未签名可执行文件视为潜在不安全
+- 这对于没有商业支持的开源项目是正常现象
+
+**解决方法：**
+1. 在 SmartScreen 对话框中点击"更多信息" → "仍要运行"
+2. 或从源码构建：`pnpm tauri build` 创建本地未签名构建
+3. 对组织：考虑购买 EV 代码签名证书
+
+**未来方案：**
+我们正在探索通过 [SignPath](https://signpath.org/)（对 OSS 免费）+ [AppVeyor](https://www.appveyor.com/) 为开源项目提供免费代码签名。
+
+## 管理员权限
+
+某些进程在无管理员权限时无法停止。如果你看到"Access is denied"错误：
+
+1. 在应用中打开设置页面
+2. 点击"以管理员身份重启"
+3. 确认 UAC 提示
+4. 应用将以提升的权限重启
+
+这是因为 `taskkill` 需要管理员权限才能终止某些进程。
 
 ## 许可证
 
