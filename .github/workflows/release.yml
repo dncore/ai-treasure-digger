@@ -64,9 +64,32 @@ jobs:
           releaseBody: |
             See the assets below to download and install.
 
-            - **Windows**: `.msi` installer or `.exe` (NSIS)
+            - **Windows Portable**: `AI-Treasure-Digger_x64_portable.zip` — unzip and run, no installation needed (requires WebView2)
+            - **Windows Installer**: `.msi` or `.exe` (NSIS)
             - **macOS**: `.dmg` (Intel and Apple Silicon)
             - **Linux**: `.deb`, `.AppImage`
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Upload portable Windows exe (no installer, just run directly)
+      - name: Package portable Windows build
+        if: ${{ matrix.platform == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          $exe = "src-tauri/target/release/ai-treasure-digger.exe"
+          $dir = "portable-package"
+          New-Item -ItemType Directory -Force -Path $dir
+          Copy-Item $exe "$dir/AI Treasure Digger.exe"
+          New-Item -ItemType File -Force -Path "$dir/portable.marker"
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          Compress-Archive -Path "$dir/*" -DestinationPath "AI-Treasure-Digger_${version}_x64_portable.zip"
+
+      - name: Upload portable Windows build
+        if: ${{ matrix.platform == 'windows-latest' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AI-Treasure-Digger_*_x64_portable.zip
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

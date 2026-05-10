@@ -47,22 +47,13 @@ impl AppState {
         }
     }
 
-    pub fn new_with_scan_state(app_handle: AppHandle, scan_state: Arc<RwLock<ScanState>>) -> Self {
-        let log_dir = std::env::current_exe()
-            .unwrap_or_default()
-            .parent()
-            .unwrap_or(std::path::Path::new("."))
-            .join("data")
-            .join("logs")
-            .to_string_lossy()
-            .to_string();
-
+    pub fn new_with_dirs(app_handle: AppHandle, scan_state: Arc<RwLock<ScanState>>, data_dir: &str) -> Self {
         Self {
             scan_state,
             settings: Mutex::new(AppSettings {
                 refresh_interval_secs: 5,
                 excluded_paths: Vec::new(),
-                log_dir,
+                log_dir: format!("{data_dir}/logs"),
             }),
             app_handle,
         }

@@ -10,24 +10,35 @@ use commands::AppState;
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
 
+/// Determine the data directory.
+/// Portable mode: if `portable.marker` exists next to the exe, use `<exe_dir>/data/`
+/// Installed mode: use Tauri's app_data_dir (e.g. %LOCALAPPDATA% on Windows)
+fn resolve_data_dir(app: &tauri::App) -> String {
+    let exe = std::env::current_exe().unwrap_or_default();
+    if let Some(exe_dir) = exe.parent() {
+        let marker = exe_dir.join("portable.marker");
+        if marker.exists() {
+            return exe_dir.join("data").to_string_lossy().to_string();
+        }
+    }
+
+    let app_data = app.path().app_data_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."));
+    app_data.to_string_lossy().to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let log_dir = std::env::current_exe()
-                .unwrap_or_default()
-                .parent()
-                .unwrap_or(std::path::Path::new("."))
-                .join("data")
-                .join("logs")
-                .to_string_lossy()
-                .to_string();
+            let data_dir = resolve_data_dir(app);
+            let log_dir = format!("{data_dir}/logs");
 
             if let Err(e) = logger::init(&log_dir) {
                 eprintln!("Failed to initialize logger: {e}");
             }
-            log::info!("AI Treasure Digger starting, log dir: {log_dir}");
+            log::info!("AI Treasure Digger starting, data dir: {data_dir}");
 
             let app_handle = app.handle().clone();
             let scan_state = Arc::new(RwLock::new(commands::ScanState {
@@ -35,7 +46,7 @@ pub fn run() {
                 last_scan: std::time::Instant::now(),
             }));
 
-            app.manage(AppState::new_with_scan_state(app_handle.clone(), scan_state.clone()));
+            app.manage(AppState::new_with_dirs(app_handle.clone(), scan_state.clone(), &data_dir));
 
             // 启动后台扫描线程
             let scan_state_bg = scan_state.clone();
