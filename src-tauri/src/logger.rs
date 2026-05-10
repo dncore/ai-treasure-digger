@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 pub fn init(log_dir: &str) -> Result<(), log::SetLoggerError> {
     let log_path = PathBuf::from(log_dir);
-    if let Some(parent) = log_path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
+    // Create the full directory tree including the logs/ directory itself
+    let _ = std::fs::create_dir_all(&log_path);
 
     let date_str = chrono::Local::now().format("%Y-%m-%d").to_string();
     let log_file = log_path.join(format!("ai-treasure-digger-{date_str}.log"));

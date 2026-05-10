@@ -8,23 +8,23 @@ mod logger;
 
 use commands::AppState;
 use std::sync::{Arc, RwLock};
+use std::path::PathBuf;
 use tauri::Manager;
 
 /// Determine the data directory.
 /// Portable mode: if `portable.marker` exists next to the exe, use `<exe_dir>/data/`
 /// Installed mode: use Tauri's app_data_dir (e.g. %LOCALAPPDATA% on Windows)
-fn resolve_data_dir(app: &tauri::App) -> String {
+fn resolve_data_dir(app: &tauri::App) -> PathBuf {
     let exe = std::env::current_exe().unwrap_or_default();
     if let Some(exe_dir) = exe.parent() {
         let marker = exe_dir.join("portable.marker");
         if marker.exists() {
-            return exe_dir.join("data").to_string_lossy().to_string();
+            return exe_dir.join("data");
         }
     }
 
-    let app_data = app.path().app_data_dir()
-        .unwrap_or_else(|_| std::path::PathBuf::from("."));
-    app_data.to_string_lossy().to_string()
+    app.path().app_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,12 +33,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let data_dir = resolve_data_dir(app);
-            let log_dir = format!("{data_dir}/logs");
+            let log_dir = data_dir.join("logs");
+            let log_dir_str = log_dir.to_string_lossy().to_string();
+            let data_dir_str = data_dir.to_string_lossy().to_string();
 
-            if let Err(e) = logger::init(&log_dir) {
+            if let Err(e) = logger::init(&log_dir_str) {
                 eprintln!("Failed to initialize logger: {e}");
             }
-            log::info!("AI Treasure Digger starting, data dir: {data_dir}");
+            log::info!("AI Treasure Digger starting, data dir: {}", data_dir.display());
 
             let app_handle = app.handle().clone();
             let scan_state = Arc::new(RwLock::new(commands::ScanState {
@@ -46,7 +48,7 @@ pub fn run() {
                 last_scan: std::time::Instant::now(),
             }));
 
-            app.manage(AppState::new_with_dirs(app_handle.clone(), scan_state.clone(), &data_dir));
+            app.manage(AppState::new_with_dirs(app_handle.clone(), scan_state.clone(), &data_dir_str));
 
             // 启动后台扫描线程
             let scan_state_bg = scan_state.clone();

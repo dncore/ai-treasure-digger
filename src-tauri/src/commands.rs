@@ -53,7 +53,7 @@ impl AppState {
             settings: Mutex::new(AppSettings {
                 refresh_interval_secs: 5,
                 excluded_paths: Vec::new(),
-                log_dir: format!("{data_dir}/logs"),
+                log_dir: std::path::PathBuf::from(data_dir).join("logs").to_string_lossy().to_string(),
             }),
             app_handle,
         }
