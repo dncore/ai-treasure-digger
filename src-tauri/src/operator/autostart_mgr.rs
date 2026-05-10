@@ -39,15 +39,16 @@ pub fn backup_autostart(name: &str, source: &str, command: &str) -> Result<PathB
 }
 
 pub fn disable_registry_autostart(name: &str, source: &str) -> Result<(), String> {
-    // Backup first
     let _ = backup_autostart(name, source, "");
 
     #[cfg(target_os = "windows")]
     {
-        use windows::Win32::System::Registry::{
-            RegOpenKeyExW, RegDeleteValueW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_SET_VALUE,
-        };
         use windows::core::PCWSTR;
+        use windows::Win32::Foundation::ERROR_SUCCESS;
+        use windows::Win32::System::Registry::{
+            RegCloseKey, RegDeleteValueW, RegOpenKeyExW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE,
+            KEY_SET_VALUE,
+        };
 
         let (hkey, path) = if source.contains("HKCU") {
             (HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run")
@@ -59,13 +60,25 @@ pub fn disable_registry_autostart(name: &str, source: &str) -> Result<(), String
         let mut key_handle = Default::default();
 
         unsafe {
-            RegOpenKeyExW(hkey, PCWSTR(path_wide.as_ptr()), 0, KEY_SET_VALUE, &mut key_handle)
-                .map_err(|e| format!("Failed to open registry key: {e}"))?;
+            let status = RegOpenKeyExW(
+                hkey,
+                PCWSTR(path_wide.as_ptr()),
+                0,
+                KEY_SET_VALUE,
+                &mut key_handle,
+            );
+            if status != ERROR_SUCCESS {
+                return Err(format!("Failed to open registry key: {status:?}"));
+            }
 
             let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
-            RegDeleteValueW(key_handle, PCWSTR(name_wide.as_ptr()))
-                .map_err(|e| format!("Failed to delete registry value: {e}"))?;
+            let status = RegDeleteValueW(key_handle, PCWSTR(name_wide.as_ptr()));
+            RegCloseKey(key_handle);
+            if status != ERROR_SUCCESS {
+                return Err(format!("Failed to delete registry value: {status:?}"));
+            }
         }
+
         Ok(())
     }
 
@@ -89,10 +102,12 @@ pub fn restore_autostart(name: &str) -> Result<(), String> {
 
                 #[cfg(target_os = "windows")]
                 {
-                    use windows::Win32::System::Registry::{
-                        RegOpenKeyExW, RegSetValueExW, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_SZ,
-                    };
                     use windows::core::PCWSTR;
+                    use windows::Win32::Foundation::ERROR_SUCCESS;
+                    use windows::Win32::System::Registry::{
+                        RegCloseKey, RegOpenKeyExW, RegSetValueExW, HKEY_CURRENT_USER,
+                        HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_SZ,
+                    };
 
                     let (hkey, path) = if backup.source.contains("HKCU") {
                         (HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run")
@@ -104,20 +119,38 @@ pub fn restore_autostart(name: &str) -> Result<(), String> {
                     let mut key_handle = Default::default();
 
                     unsafe {
-                        RegOpenKeyExW(hkey, PCWSTR(path_wide.as_ptr()), 0, KEY_SET_VALUE, &mut key_handle)
-                            .map_err(|e| format!("Failed to open registry key: {e}"))?;
+                        let status = RegOpenKeyExW(
+                            hkey,
+                            PCWSTR(path_wide.as_ptr()),
+                            0,
+                            KEY_SET_VALUE,
+                            &mut key_handle,
+                        );
+                        if status != ERROR_SUCCESS {
+                            return Err(format!("Failed to open registry key: {status:?}"));
+                        }
 
                         let name_wide: Vec<u16> = backup.name.encode_utf16().chain(std::iter::once(0)).collect();
                         let data_wide: Vec<u16> = backup.original_command.encode_utf16().chain(std::iter::once(0)).collect();
+                        let data_bytes = std::slice::from_raw_parts(
+                            data_wide.as_ptr() as *const u8,
+                            data_wide.len() * 2,
+                        );
 
-                        RegSetValueExW(
-                            key_handle, PCWSTR(name_wide.as_ptr()), 0, REG_SZ,
-                            Some(bytemuck::cast_slice(&data_wide)),
-                        ).map_err(|e| format!("Failed to set registry value: {e}"))?;
+                        let status = RegSetValueExW(
+                            key_handle,
+                            PCWSTR(name_wide.as_ptr()),
+                            0,
+                            REG_SZ,
+                            Some(data_bytes),
+                        );
+                        RegCloseKey(key_handle);
+                        if status != ERROR_SUCCESS {
+                            return Err(format!("Failed to set registry value: {status:?}"));
+                        }
                     }
                 }
 
-                // Remove the backup file after restoration
                 let _ = std::fs::remove_file(entry.path());
                 return Ok(());
             }
