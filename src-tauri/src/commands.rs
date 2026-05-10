@@ -91,7 +91,7 @@ pub async fn run_full_scan(scan_state: Arc<RwLock<ScanState>>, app_handle: AppHa
         // 自启动：通过 exe 路径或命令行匹配
         for entry in &autostart_entries {
             if service.command_line.to_lowercase().contains(&entry.name.to_lowercase())
-                || (entry.is_ai_related && paths_overlap(&service.exe_or_working_dir(), &entry.command))
+                || (entry.is_service_related && paths_overlap(&service.exe_or_working_dir(), &entry.command))
             {
                 service.is_autostart = true;
                 service.autostart_source = Some(entry.source.clone());
@@ -99,7 +99,7 @@ pub async fn run_full_scan(scan_state: Arc<RwLock<ScanState>>, app_handle: AppHa
         }
         for entry in &task_entries {
             if service.command_line.to_lowercase().contains(&entry.name.to_lowercase())
-                || (entry.is_ai_related && paths_overlap(&service.exe_or_working_dir(), &entry.command))
+                || (entry.is_service_related && paths_overlap(&service.exe_or_working_dir(), &entry.command))
             {
                 service.is_autostart = true;
                 service.autostart_source = Some("Task Scheduler".to_string());

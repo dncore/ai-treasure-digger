@@ -1,4 +1,4 @@
-use crate::models::{DetectedService, DetectionMethod, RiskLevel, ServiceType};
+use crate::models::{DetectedService, RiskLevel, ServiceType};
 
 pub async fn scan_docker() -> Result<Vec<DetectedService>, String> {
     use std::process::Command;
@@ -37,7 +37,6 @@ pub async fn scan_docker() -> Result<Vec<DetectedService>, String> {
                 children: Vec::new(),
                 safe_to_stop: false,
                 risk_level: RiskLevel::Critical,
-                detection_method: DetectionMethod::HardMatch,
             });
         }
     }

@@ -8,15 +8,15 @@
 
 ## Overview
 
-AI Treasure Digger is a cross-platform desktop application that detects and manages AI-generated temporary services on your device. It identifies Node.js, Python, Docker, and WSL instances that may have been spun up by AI tools, and provides capabilities to stop them, disable autostart behavior, and optionally clean up associated files.
+AI Treasure Digger is a desktop application that detects and manages hidden Node.js, Python, Docker, and WSL services running on your Windows machine. Non-technical users often unknowingly start these services and have no idea they're consuming resources, opening ports, or running in the background. This app gives full visibility and control — stop services, disable autostart, and clean up associated files.
 
 Built with **Tauri v2** (Rust + WebView2 + React) — lightweight, fast, and secure.
 
 ## Features
 
-- **Two-tier AI service detection** — Hard match (known AI process signatures like Ollama, LM Studio, Jupyter, Gradio) + Soft match (multi-category keyword co-occurrence to reduce false positives)
+- **Full service detection** — Scans ALL Node.js and Python processes, Docker containers, and WSL instances — no keyword filtering, no false negatives
 - **4-level risk assessment** — Safe / Caution / Danger / Critical, based on service type, port bindings, and resource usage
-- **Background scanning** — Automatic 5-second refresh cycle with real-time event emission to the frontend
+- **Background scanning** — Automatic refresh cycle with real-time event emission to the frontend
 - **Service management** — Stop individual or batch services, disable autostart entries
 - **Cleanup wizard** — 3-tier categorization (Safe / Warning / Source), real-time progress bar, abort support, WSL double-confirm
 - **Dark / Light theme** — CSS variable system, persisted to localStorage, respects system preference
@@ -122,22 +122,22 @@ Output artifacts are in `src-tauri/target/release/bundle/`.
 
 ## Detection Logic
 
-### Tier 1: Hard Match
+### Process Detection
 
-Known AI process signatures matched against command lines:
+All running processes are enumerated and classified by executable name:
 
-`ollama`, `lm-studio`, `lmstudio`, `jupyter-notebook`, `jupyter-lab`, `gradio`, `streamlit run`, `uvicorn`, `flask run`
+| Service Type | Detection |
+|-------------|-----------|
+| **Node.js** | Executable contains `node` or `nodejs` |
+| **Python** | Executable contains `python` |
+| **Docker** | Running containers via `docker ps` |
+| **WSL** | Running instances via `wsl --list --running` |
 
-### Tier 2: Soft Match
+### Autostart Detection
 
-Multi-category keyword co-occurrence — at least 2 of 4 categories must match:
+Scans Windows Registry Run keys and Task Scheduler for entries matching service keywords:
 
-| Category | Keywords |
-|----------|----------|
-| AI Model | ollama, llama, gpt, openai, model, inference |
-| AI App | langchain, chat, bot, agent |
-| Web Service | flask, fastapi, gradio, streamlit, uvicorn, jupyter, serve |
-| API | api, endpoint |
+`node`, `python`, `python3`, `pip`, `npm`, `yarn`, `pnpm`, `docker`, `flask`, `fastapi`, `gradio`, `streamlit`, `uvicorn`, `jupyter`, `gunicorn`, `serve`, `http-server`, `live-server`
 
 ### Risk Levels
 
@@ -165,11 +165,11 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow builds for 4 platforms and creates a draft GitHub Release:
+The workflow builds for 4 platforms and creates a GitHub Release:
 
 | Platform | Artifacts |
 |----------|-----------|
-| Windows | `.msi`, `.exe` (NSIS) |
+| Windows | `.msi`, `.exe` (NSIS), portable `.zip` |
 | macOS (Apple Silicon) | `.dmg` |
 | macOS (Intel) | `.dmg` |
 | Linux | `.deb`, `.AppImage` |
@@ -184,15 +184,15 @@ MIT
 
 ## 概述
 
-AI Treasure Digger 是一款跨平台桌面应用，用于检测和管理设备上由 AI 工具创建的临时服务。它能识别 Node.js、Python、Docker 和 WSL 实例，提供停止服务、禁用自启动、可选文件清理功能。
+AI Treasure Digger 是一款桌面应用，用于检测和管理 Windows 上隐藏运行的 Node.js、Python、Docker 和 WSL 服务。非技术用户经常在不知情的情况下启动了这些服务，却不知道它们在消耗资源、开放端口或在后台运行。本应用提供完整的可见性和控制能力——停止服务、禁用自启动、清理关联文件。
 
 基于 **Tauri v2**（Rust + WebView2 + React）构建——轻量、快速、安全。
 
 ## 功能特性
 
-- **两级 AI 服务检测** — 硬匹配（已知 AI 进程签名如 Ollama、LM Studio、Jupyter、Gradio）+ 软匹配（多类别关键词共现，降低误报率）
+- **全量服务检测** — 扫描所有 Node.js 和 Python 进程、Docker 容器及 WSL 实例——无关键词过滤，不遗漏任何服务
 - **四级风险评估** — Safe / Caution / Danger / Critical，基于服务类型、端口绑定和资源占用
-- **后台扫描** — 自动 5 秒刷新周期，实时事件推送至前端
+- **后台扫描** — 自动刷新周期，实时事件推送至前端
 - **服务管理** — 停止单个或批量服务，禁用自启动项
 - **清理向导** — 三级分类（安全/警告/源码），实时进度条，支持中断，WSL 双重确认
 - **暗色/亮色主题** — CSS 变量系统，持久化到 localStorage，遵循系统偏好
@@ -298,22 +298,22 @@ pnpm tauri build
 
 ## 检测逻辑
 
-### 第一层：硬匹配
+### 进程检测
 
-已知 AI 进程签名，直接匹配命令行：
+枚举所有运行中的进程，按可执行文件名分类：
 
-`ollama`、`lm-studio`、`lmstudio`、`jupyter-notebook`、`jupyter-lab`、`gradio`、`streamlit run`、`uvicorn`、`flask run`
+| 服务类型 | 检测方式 |
+|---------|---------|
+| **Node.js** | 可执行文件包含 `node` 或 `nodejs` |
+| **Python** | 可执行文件包含 `python` |
+| **Docker** | 通过 `docker ps` 获取运行中容器 |
+| **WSL** | 通过 `wsl --list --running` 获取运行中实例 |
 
-### 第二层：软匹配
+### 自启动检测
 
-多类别关键词共现——4 个类别中至少匹配 2 个：
+扫描 Windows 注册表 Run 键和任务计划程序，匹配服务关键词：
 
-| 类别 | 关键词 |
-|------|--------|
-| AI 模型 | ollama, llama, gpt, openai, model, inference |
-| AI 应用 | langchain, chat, bot, agent |
-| Web 服务 | flask, fastapi, gradio, streamlit, uvicorn, jupyter, serve |
-| API | api, endpoint |
+`node`、`python`、`python3`、`pip`、`npm`、`yarn`、`pnpm`、`docker`、`flask`、`fastapi`、`gradio`、`streamlit`、`uvicorn`、`jupyter`、`gunicorn`、`serve`、`http-server`、`live-server`
 
 ### 风险等级
 
@@ -341,11 +341,11 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-工作流为 4 个平台构建，并创建 GitHub Release 草稿：
+工作流为 4 个平台构建，并创建 GitHub Release：
 
 | 平台 | 产物 |
 |------|------|
-| Windows | `.msi`、`.exe`（NSIS） |
+| Windows | `.msi`、`.exe`（NSIS）、便携版 `.zip` |
 | macOS（Apple Silicon） | `.dmg` |
 | macOS（Intel） | `.dmg` |
 | Linux | `.deb`、`.AppImage` |

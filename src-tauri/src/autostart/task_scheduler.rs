@@ -1,11 +1,12 @@
-use crate::models::{AI_KEYWORDS, soft_match};
+#[allow(unused_imports)]
+use crate::models::SERVICE_KEYWORDS;
 
 pub struct TaskEntry {
     pub name: String,
     #[allow(dead_code)]
     pub path: String,
     pub command: String,
-    pub is_ai_related: bool,
+    pub is_service_related: bool,
 }
 
 #[cfg(target_os = "windows")]
@@ -27,12 +28,13 @@ pub fn scan_task_scheduler() -> Vec<TaskEntry> {
 
             if let Some(val) = trimmed.strip_prefix("Task Name:") {
                 if !current_name.is_empty() {
-                    let is_ai = soft_match(&current_command);
+                    let cmd_lower = current_command.to_lowercase();
+                    let is_related = SERVICE_KEYWORDS.iter().any(|kw| cmd_lower.contains(kw));
                     entries.push(TaskEntry {
                         name: current_name.clone(),
                         path: String::new(),
                         command: current_command.clone(),
-                        is_ai_related: is_ai,
+                        is_service_related: is_related,
                     });
                 }
                 current_name = val.trim().to_string();
@@ -44,12 +46,12 @@ pub fn scan_task_scheduler() -> Vec<TaskEntry> {
 
         if !current_name.is_empty() {
             let cmd_lower = current_command.to_lowercase();
-            let is_ai = AI_KEYWORDS.iter().any(|kw| cmd_lower.contains(kw));
+            let is_related = SERVICE_KEYWORDS.iter().any(|kw| cmd_lower.contains(kw));
             entries.push(TaskEntry {
                 name: current_name,
                 path: String::new(),
                 command: current_command,
-                is_ai_related: is_ai,
+                is_service_related: is_related,
             });
         }
     }

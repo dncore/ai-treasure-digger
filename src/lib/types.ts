@@ -8,7 +8,6 @@ export interface PortBinding {
 
 export type ServiceType = "NodeProcess" | "PythonProcess" | "DockerContainer" | "WslInstance";
 export type RiskLevel = "Safe" | "Caution" | "Danger" | "Critical";
-export type DetectionMethod = "HardMatch" | "SoftMatch";
 export type CleanupCategory = "Safe" | "Warning" | "Source";
 
 export interface DetectedService {
@@ -27,7 +26,6 @@ export interface DetectedService {
   children: number[];
   safe_to_stop: boolean;
   risk_level: RiskLevel;
-  detection_method: DetectionMethod;
 }
 
 export interface ResourceSummary {

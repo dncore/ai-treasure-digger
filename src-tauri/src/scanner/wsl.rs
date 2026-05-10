@@ -1,4 +1,5 @@
-use crate::models::{DetectedService, DetectionMethod, RiskLevel, ServiceType};
+#[allow(unused_imports)]
+use crate::models::{DetectedService, RiskLevel, ServiceType};
 
 pub fn scan_wsl() -> Result<Vec<DetectedService>, String> {
     #[cfg(target_os = "windows")]
@@ -39,7 +40,6 @@ pub fn scan_wsl() -> Result<Vec<DetectedService>, String> {
                         children: Vec::new(),
                         safe_to_stop: false,
                         risk_level: RiskLevel::Critical,
-                        detection_method: DetectionMethod::HardMatch,
                     });
                 }
             }

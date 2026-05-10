@@ -18,13 +18,6 @@ pub enum RiskLevel {
     Critical,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "PascalCase")]
-pub enum DetectionMethod {
-    HardMatch,
-    SoftMatch,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortBinding {
     pub protocol: String,
@@ -51,7 +44,6 @@ pub struct DetectedService {
     pub children: Vec<u32>,
     pub safe_to_stop: bool,
     pub risk_level: RiskLevel,
-    pub detection_method: DetectionMethod,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,71 +87,14 @@ pub struct BatchResult {
     pub errors: Vec<String>,
 }
 
-// --- 第一层：硬匹配签名 ---
-
-pub struct HardMatchRule {
-    pub pattern: &'static str,
-    pub service_type: ServiceType,
-}
-
-pub const HARD_MATCH_RULES: &[HardMatchRule] = &[
-    HardMatchRule { pattern: "ollama", service_type: ServiceType::NodeProcess },
-    HardMatchRule { pattern: "lm-studio", service_type: ServiceType::NodeProcess },
-    HardMatchRule { pattern: "lmstudio", service_type: ServiceType::NodeProcess },
-    HardMatchRule { pattern: "jupyter-notebook", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "jupyter notebook", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "jupyter-lab", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "jupyter lab", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "gradio", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "streamlit run", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "uvicorn", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "flask run", service_type: ServiceType::PythonProcess },
-    HardMatchRule { pattern: "python -m flask", service_type: ServiceType::PythonProcess },
-];
-
-// --- 第二层：软匹配关键词类别 ---
+// --- 自启动匹配关键词 ---
 
 #[allow(dead_code)]
-pub enum KeywordCategory {
-    AiModel,    // ollama, llama, gpt, openai, model, inference
-    AiApp,      // langchain, chat, bot, agent
-    WebService, // flask, fastapi, gradio, streamlit, uvicorn, jupyter, serve
-    Api,        // api, endpoint
-}
-
-pub const KEYWORD_AI_MODEL: &[&str] = &["ollama", "llama", "gpt", "openai", "model", "inference"];
-pub const KEYWORD_AI_APP: &[&str] = &["langchain", "chat", "bot", "agent"];
-pub const KEYWORD_WEB_SERVICE: &[&str] = &["flask", "fastapi", "gradio", "streamlit", "uvicorn", "jupyter", "serve"];
-pub const KEYWORD_API: &[&str] = &["api", "endpoint"];
-
-/// 所有关键词合集，用于 task_scheduler 的简单匹配
-pub const AI_KEYWORDS: &[&str] = &[
-    "ollama", "llama", "gpt", "openai", "model", "inference",
-    "langchain", "chat", "bot", "agent",
-    "flask", "fastapi", "gradio", "streamlit", "uvicorn", "jupyter", "serve",
-    "api", "endpoint",
+pub const SERVICE_KEYWORDS: &[&str] = &[
+    "node", "python", "python3", "pip", "npm", "yarn", "pnpm",
+    "docker", "flask", "fastapi", "gradio", "streamlit", "uvicorn",
+    "jupyter", "gunicorn", "serve", "http-server", "live-server",
 ];
-
-/// 检查命令行是否满足软匹配条件（≥2 个不同类别关键词）
-pub fn soft_match(cmdline: &str) -> bool {
-    let lower = cmdline.to_lowercase();
-    let mut categories_hit = 0u8;
-
-    if KEYWORD_AI_MODEL.iter().any(|kw| lower.contains(kw)) {
-        categories_hit += 1;
-    }
-    if KEYWORD_AI_APP.iter().any(|kw| lower.contains(kw)) {
-        categories_hit += 1;
-    }
-    if KEYWORD_WEB_SERVICE.iter().any(|kw| lower.contains(kw)) {
-        categories_hit += 1;
-    }
-    if KEYWORD_API.iter().any(|kw| lower.contains(kw)) {
-        categories_hit += 1;
-    }
-
-    categories_hit >= 2
-}
 
 // --- 路径安全 ---
 
@@ -185,7 +120,6 @@ pub const CLEANUP_SOURCE: &[&str] = &[
     "src", "lib", "app", "components", "pages", "internal", "pkg", "cmd",
 ];
 
-/// 向后兼容：所有可清理目标的合集
 pub fn all_cleanup_targets() -> Vec<&'static str> {
     CLEANUP_SAFE.iter()
         .chain(CLEANUP_WARNING.iter())

@@ -1,10 +1,11 @@
-use crate::models::soft_match;
+#[allow(unused_imports)]
+use crate::models::SERVICE_KEYWORDS;
 
 pub struct AutostartEntry {
     pub name: String,
     pub command: String,
     pub source: String,
-    pub is_ai_related: bool,
+    pub is_service_related: bool,
 }
 
 #[cfg(target_os = "windows")]
@@ -53,13 +54,14 @@ pub fn scan_registry_autostart() -> Vec<AutostartEntry> {
                 if data_type == REG_SZ.0 {
                     let name = String::from_utf16_lossy(&name_buf[..name_len as usize]);
                     let data = String::from_utf8_lossy(&data_buf[..data_len as usize]);
-                    let is_ai = soft_match(&data);
+                    let cmd_lower = data.to_lowercase();
+                    let is_related = SERVICE_KEYWORDS.iter().any(|kw| cmd_lower.contains(kw));
 
                     entries.push(AutostartEntry {
                         name: name.trim_end_matches('\0').to_string(),
                         command: data.trim_end_matches('\0').to_string(),
                         source: source.to_string(),
-                        is_ai_related: is_ai,
+                        is_service_related: is_related,
                     });
                 }
                 index += 1;

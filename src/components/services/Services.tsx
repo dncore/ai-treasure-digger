@@ -25,11 +25,6 @@ const RISK_COLORS: Record<string, string> = {
   Critical: "bg-red-900/50 text-red-300",
 };
 
-const DETECTION_LABELS = {
-  HardMatch: "verified",
-  SoftMatch: "possible",
-};
-
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -221,11 +216,6 @@ export function Services() {
                     <span className={`rounded px-2 py-0.5 text-xs ${RISK_COLORS[service.risk_level]}`}>
                       {service.risk_level}
                     </span>
-                    {service.detection_method === "SoftMatch" && (
-                      <span className="rounded px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--bg-input)", color: "var(--text-muted)" }}>
-                        {DETECTION_LABELS[service.detection_method]}
-                      </span>
-                    )}
                     {service.is_autostart && (
                       <span className="rounded bg-amber-900/50 px-2 py-0.5 text-xs text-amber-300">
                         autostart

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::models::{
-    DetectedService, DetectionMethod, PortBinding, RiskLevel, ServiceType,
-    HARD_MATCH_RULES, soft_match,
+    DetectedService, PortBinding, RiskLevel, ServiceType,
 };
 
 pub struct ProcessInfo {
@@ -118,28 +117,16 @@ fn get_process_list() -> Vec<ProcessInfo> {
     result
 }
 
-fn classify_process(exe: &str, cmdline: &str) -> Option<(ServiceType, DetectionMethod)> {
+/// Detect ALL Node.js and Python processes — no keyword filtering.
+/// Non-technical users often don't realize these are running.
+fn classify_process(exe: &str) -> Option<ServiceType> {
     let exe_lower = exe.to_lowercase();
-    let cmd_lower = cmdline.to_lowercase();
 
-    for rule in HARD_MATCH_RULES {
-        if cmd_lower.contains(rule.pattern) {
-            return Some((rule.service_type.clone(), DetectionMethod::HardMatch));
-        }
+    if exe_lower.contains("node") || exe_lower.contains("nodejs") {
+        return Some(ServiceType::NodeProcess);
     }
-
-    let is_node = exe_lower.contains("node") || exe_lower.contains("nodejs");
-    let is_python = exe_lower.contains("python");
-
-    if is_node {
-        if soft_match(cmdline) {
-            return Some((ServiceType::NodeProcess, DetectionMethod::SoftMatch));
-        }
-    }
-    if is_python {
-        if soft_match(cmdline) {
-            return Some((ServiceType::PythonProcess, DetectionMethod::SoftMatch));
-        }
+    if exe_lower.contains("python") {
+        return Some(ServiceType::PythonProcess);
     }
 
     None
@@ -173,7 +160,7 @@ pub fn scan_processes(port_map: &HashMap<u32, Vec<PortBinding>>) -> Vec<Detected
     let mut services = Vec::new();
 
     for proc in processes {
-        if let Some((service_type, detection_method)) = classify_process(&proc.exe_path, &proc.command_line) {
+        if let Some(service_type) = classify_process(&proc.exe_path) {
             let pid_ports = port_map.get(&proc.pid).cloned().unwrap_or_default();
 
             let risk = calculate_risk_level(&service_type, &pid_ports, 0.0, 0);
@@ -195,7 +182,6 @@ pub fn scan_processes(port_map: &HashMap<u32, Vec<PortBinding>>) -> Vec<Detected
                 children: Vec::new(),
                 safe_to_stop: risk == RiskLevel::Safe,
                 risk_level: risk,
-                detection_method,
             });
         }
     }
