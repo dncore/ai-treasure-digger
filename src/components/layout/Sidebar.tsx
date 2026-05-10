@@ -15,28 +15,40 @@ const navItems: { page: Page; icon: string; label: string }[] = [
 
 export function Sidebar({ currentPage, onNavigate, theme, onToggleTheme }: SidebarProps) {
   return (
-    <nav className="flex h-full w-[60px] flex-col items-center py-4 gap-1" style={{ backgroundColor: "var(--bg-sidebar)" }}>
-      <div className="mb-4 text-lg font-bold text-emerald-400">⛏</div>
-      {navItems.map((item) => (
-        <button
-          key={item.page}
-          onClick={() => onNavigate(item.page)}
-          title={item.label}
-          className={`flex h-10 w-10 items-center justify-center rounded-lg text-lg transition-colors ${
-            currentPage === item.page
-              ? "text-emerald-400"
-              : "hover:text-[var(--text-secondary)]"
-          }`}
-          style={currentPage === item.page ? { backgroundColor: "var(--bg-input)" } : { color: "var(--text-muted)" }}
-        >
-          {item.icon}
-        </button>
-      ))}
+    <nav
+      className="flex h-full w-[64px] flex-col items-center py-5 gap-1"
+      style={{ backgroundColor: "var(--bg-sidebar)" }}
+    >
+      <div
+        className="mb-6 text-2xl font-bold"
+        style={{ color: "var(--accent)" }}
+      >
+        ⛏
+      </div>
+
+      {navItems.map((item) => {
+        const isActive = currentPage === item.page;
+        return (
+          <button
+            key={item.page}
+            onClick={() => onNavigate(item.page)}
+            title={item.label}
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-lg transition-all"
+            style={{
+              backgroundColor: isActive ? "var(--bg-input)" : "transparent",
+              color: isActive ? "var(--accent)" : "var(--text-muted)",
+            }}
+          >
+            {item.icon}
+          </button>
+        );
+      })}
+
       <div className="mt-auto">
         <button
           onClick={onToggleTheme}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-lg transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-lg transition-all hover:bg-[var(--bg-input)]"
           style={{ color: "var(--text-muted)" }}
         >
           {theme === "dark" ? "◐" : "◑"}

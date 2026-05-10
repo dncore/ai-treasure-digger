@@ -4,25 +4,18 @@ import { CleanupModal } from "./CleanupModal";
 import { ToastContext } from "../../App";
 import type { DetectedService, ServiceType } from "../../lib/types";
 
-const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
-  NodeProcess: "Node.js",
-  PythonProcess: "Python",
-  DockerContainer: "Docker",
-  WslInstance: "WSL",
+const SERVICE_TYPE_CONFIG: Record<ServiceType, { label: string; color: string }> = {
+  NodeProcess: { label: "Node.js", color: "#22c55e" },
+  PythonProcess: { label: "Python", color: "#eab308" },
+  DockerContainer: { label: "Docker", color: "#3b82f6" },
+  WslInstance: { label: "WSL", color: "#a855f7" },
 };
 
-const SERVICE_TYPE_COLORS: Record<ServiceType, string> = {
-  NodeProcess: "bg-green-900/50 text-green-300",
-  PythonProcess: "bg-yellow-900/50 text-yellow-300",
-  DockerContainer: "bg-blue-900/50 text-blue-300",
-  WslInstance: "bg-purple-900/50 text-purple-300",
-};
-
-const RISK_COLORS: Record<string, string> = {
-  Safe: "bg-emerald-900/50 text-emerald-300",
-  Caution: "bg-amber-900/50 text-amber-300",
-  Danger: "bg-orange-900/50 text-orange-300",
-  Critical: "bg-red-900/50 text-red-300",
+const RISK_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
+  Safe: { label: "Safe", bgColor: "var(--success-bg)", textColor: "var(--success)" },
+  Caution: { label: "Caution", bgColor: "var(--warning-bg)", textColor: "var(--warning)" },
+  Danger: { label: "Danger", bgColor: "var(--danger-bg)", textColor: "var(--danger)" },
+  Critical: { label: "Critical", bgColor: "var(--critical-bg)", textColor: "var(--critical)" },
 };
 
 function formatBytes(bytes: number): string {
@@ -65,6 +58,11 @@ export function Services() {
     try {
       await stopService(id);
       ToastContext.addToast({ type: "success", title: "Service stopped" });
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (e) {
       ToastContext.addToast({ type: "error", title: "Failed to stop", detail: String(e) });
     } finally {
@@ -122,33 +120,44 @@ export function Services() {
     { value: "WslInstance", label: "WSL" },
   ];
 
-  if (loading) return <div style={{ color: "var(--text-muted)" }}>Scanning services...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center" style={{ color: "var(--text-muted)" }}>
+          <div className="animate-pulse text-lg">Scanning services...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Services</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Services</h1>
         <button
           onClick={load}
-          className="rounded-lg border px-3 py-1.5 text-sm transition-colors"
-          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:scale-105"
+          style={{
+            backgroundColor: "var(--bg-input)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border)",
+          }}
         >
           Refresh
         </button>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 p-1 rounded-lg" style={{ backgroundColor: "var(--bg-card)" }}>
           {filters.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                filter === f.value
-                  ? "font-medium"
-                  : ""
-              }`}
-              style={filter === f.value ? { backgroundColor: "var(--bg-input)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}
+              className="rounded-md px-3 py-1.5 text-sm font-medium transition-all"
+              style={{
+                backgroundColor: filter === f.value ? "var(--bg-input)" : "transparent",
+                color: filter === f.value ? "var(--text-primary)" : "var(--text-muted)",
+              }}
             >
               {f.label}
             </button>
@@ -157,8 +166,8 @@ export function Services() {
         {filtered.length > 0 && (
           <button
             onClick={toggleSelectAll}
-            className="text-xs"
-            style={{ color: "var(--text-muted)" }}
+            className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors hover:bg-[var(--bg-input)]"
+            style={{ color: "var(--text-secondary)" }}
           >
             {selected.size === filtered.length ? "Deselect all" : "Select all"}
           </button>
@@ -166,18 +175,33 @@ export function Services() {
       </div>
 
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-800/50 bg-amber-950/30 px-4 py-3">
-          <span className="text-sm text-amber-300">{selected.size} selected</span>
+        <div
+          className="flex items-center gap-3 rounded-xl px-4 py-3"
+          style={{
+            backgroundColor: "var(--warning-bg)",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+          }}
+        >
+          <span className="text-sm font-medium" style={{ color: "var(--warning)" }}>
+            {selected.size} selected
+          </span>
           <button
             onClick={handleBatchStop}
-            className="rounded border border-red-800 px-3 py-1 text-sm text-red-300 hover:bg-red-950"
+            className="rounded-lg px-3 py-1 text-sm font-medium transition-all"
+            style={{
+              backgroundColor: "var(--danger)",
+              color: "#fff",
+            }}
           >
             Stop Selected
           </button>
           <button
             onClick={() => setSelected(new Set())}
-            className="rounded border px-3 py-1 text-sm transition-colors"
-            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+            className="rounded-lg px-3 py-1 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: "var(--bg-input)",
+              color: "var(--text-secondary)",
+            }}
           >
             Clear
           </button>
@@ -185,85 +209,149 @@ export function Services() {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20" style={{ color: "var(--text-muted)" }}>
-          <span className="text-4xl">&#x2728;</span>
-          <p className="mt-3 text-lg">Your device is clean</p>
+        <div className="flex flex-col items-center justify-center py-24">
+          <div
+            className="text-6xl mb-4 opacity-50"
+            style={{ color: "var(--text-muted)" }}
+          >
+            ✓
+          </div>
+          <p className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
+            Your device is clean
+          </p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+            No services detected
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((service) => (
-            <div
-              key={service.id}
-              className="rounded-lg border p-4 transition-colors"
-              style={{
-                borderColor: selected.has(service.id) ? "#065f46" : "var(--border)",
-                backgroundColor: selected.has(service.id) ? "rgba(6,78,59,0.15)" : "var(--bg-card)",
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={selected.has(service.id)}
-                  onChange={() => toggleSelect(service.id)}
-                  className="mt-1 accent-emerald-500"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold">{service.name}</span>
-                    <span className={`rounded px-2 py-0.5 text-xs ${SERVICE_TYPE_COLORS[service.service_type]}`}>
-                      {SERVICE_TYPE_LABELS[service.service_type]}
-                    </span>
-                    <span className={`rounded px-2 py-0.5 text-xs ${RISK_COLORS[service.risk_level]}`}>
-                      {service.risk_level}
-                    </span>
-                    {service.is_autostart && (
-                      <span className="rounded bg-amber-900/50 px-2 py-0.5 text-xs text-amber-300">
-                        autostart
+        <div className="space-y-2">
+          {filtered.map((service) => {
+            const typeConfig = SERVICE_TYPE_CONFIG[service.service_type];
+            const riskConfig = RISK_CONFIG[service.risk_level];
+            const isSelected = selected.has(service.id);
+
+            return (
+              <div
+                key={service.id}
+                className="rounded-xl p-4 transition-all cursor-pointer hover:scale-[1.01]"
+                style={{
+                  backgroundColor: isSelected ? "var(--bg-card-hover)" : "var(--bg-card)",
+                  border: `1px solid ${isSelected ? "var(--accent)" : "var(--border)"}`,
+                  boxShadow: isSelected ? "0 0 0 1px var(--accent)" : "none",
+                }}
+                onClick={() => toggleSelect(service.id)}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(service.id)}
+                    className="mt-1 w-4 h-4 rounded"
+                    style={{ accentColor: "var(--accent)" }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-base" style={{ color: "var(--text-primary)" }}>
+                        {service.name}
                       </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm truncate" style={{ color: "var(--text-muted)" }} title={service.command_line}>
-                    {service.command_line}
-                  </p>
-                  <div className="mt-2 flex gap-4 text-xs" style={{ color: "var(--text-muted)" }}>
-                    {service.pid && <span>PID: {service.pid}</span>}
-                    <span>CPU: {service.cpu_usage.toFixed(1)}%</span>
-                    <span>MEM: {formatBytes(service.memory_usage)}</span>
-                    <span>DISK: {formatBytes(service.disk_usage)}</span>
-                    {service.ports.length > 0 && (
-                      <span>Ports: {service.ports.map((p) => p.local_addr).join(", ")}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  {service.working_dir.length > 0 && service.service_type !== "WslInstance" && (
-                    <button
-                      onClick={() => setCleanupTarget(service)}
-                      className="rounded border px-2 py-1 text-xs transition-colors"
-                      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+
+                      <span
+                        className="rounded-md px-2 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: `${typeConfig.color}15`,
+                          color: typeConfig.color,
+                        }}
+                      >
+                        {typeConfig.label}
+                      </span>
+
+                      <span
+                        className="rounded-md px-2 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: riskConfig.bgColor,
+                          color: riskConfig.textColor,
+                        }}
+                      >
+                        {riskConfig.label}
+                      </span>
+
+                      {service.is_autostart && (
+                        <span
+                          className="rounded-md px-2 py-0.5 text-xs font-medium"
+                          style={{
+                            backgroundColor: "var(--warning-bg)",
+                            color: "var(--warning)",
+                          }}
+                        >
+                          autostart
+                        </span>
+                      )}
+                    </div>
+
+                    <p
+                      className="text-sm mb-2 truncate"
+                      style={{ color: "var(--text-secondary)" }}
+                      title={service.command_line}
                     >
-                      Cleanup
-                    </button>
-                  )}
-                  {service.is_autostart && (
+                      {service.command_line}
+                    </p>
+
+                    <div className="flex gap-4 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                      {service.pid && <span>PID: {service.pid}</span>}
+                      <span>CPU: {service.cpu_usage.toFixed(1)}%</span>
+                      <span>MEM: {formatBytes(service.memory_usage)}</span>
+                      <span>DISK: {formatBytes(service.disk_usage)}</span>
+                      {service.ports.length > 0 && (
+                        <span style={{ color: "var(--accent)" }}>
+                          {service.ports.length} port{service.ports.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {service.working_dir.length > 0 && service.service_type !== "WslInstance" && (
+                      <button
+                        onClick={() => setCleanupTarget(service)}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: "var(--bg-input)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        Cleanup
+                      </button>
+                    )}
+                    {service.is_autostart && (
+                      <button
+                        onClick={() => handleDisableAutostart(service.id)}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: "var(--warning-bg)",
+                          color: "var(--warning)",
+                        }}
+                      >
+                        Disable
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleDisableAutostart(service.id)}
-                      className="rounded border border-amber-800 px-2 py-1 text-xs text-amber-300 hover:bg-amber-950"
+                      onClick={() => handleStop(service.id)}
+                      disabled={service.risk_level === "Critical" || stopping.has(service.id)}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: "var(--danger-bg)",
+                        color: "var(--danger)",
+                      }}
                     >
-                      Disable Autostart
+                      {stopping.has(service.id) ? "Stopping..." : "Stop"}
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleStop(service.id)}
-                    disabled={service.risk_level === "Critical" || stopping.has(service.id)}
-                    className="rounded border border-red-800 px-2 py-1 text-xs text-red-300 hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {stopping.has(service.id) ? "Stopping..." : "Stop"}
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

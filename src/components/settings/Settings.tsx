@@ -44,16 +44,28 @@ export function Settings() {
     });
   }
 
-  if (!settings) return <div style={{ color: "var(--text-muted)" }}>Loading settings...</div>;
+  if (!settings) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg" style={{ color: "var(--text-muted)" }}>
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="space-y-8 max-w-3xl">
+      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Scan Settings</h2>
-        <label className="flex items-center gap-3 text-sm">
-          <span className="w-40" style={{ color: "var(--text-secondary)" }}>Refresh Interval</span>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          Scan Settings
+        </h2>
+        <label className="flex items-center gap-4">
+          <span className="w-48 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+            Refresh Interval
+          </span>
           <input
             type="number"
             min={1}
@@ -62,25 +74,42 @@ export function Settings() {
             onChange={(e) =>
               setSettings({ ...settings, refresh_interval_secs: Number(e.target.value) })
             }
-            className="w-20 rounded border px-2 py-1 text-sm"
-            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
+            className="w-24 rounded-lg px-3 py-2 text-sm font-medium"
+            style={{
+              backgroundColor: "var(--bg-input)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
+            }}
           />
-          <span style={{ color: "var(--text-muted)" }}>seconds</span>
+          <span className="text-sm" style={{ color: "var(--text-muted)" }}>
+            seconds
+          </span>
         </label>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Excluded Paths</h2>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          Excluded Paths
+        </h2>
         <div className="space-y-2">
           {settings.excluded_paths.map((path, i) => (
-            <div key={i} className="flex items-center justify-between rounded border px-3 py-2 text-sm" style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}>
-              <span style={{ color: "var(--text-secondary)" }}>{path}</span>
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-xl px-4 py-3"
+              style={{
+                backgroundColor: "var(--bg-card)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <span className="text-sm font-mono" style={{ color: "var(--text-secondary)" }}>
+                {path}
+              </span>
               <button
                 onClick={() => removeExcludedPath(i)}
-                className="hover:text-red-400"
-                style={{ color: "var(--text-muted)" }}
+                className="text-sm font-medium transition-colors hover:opacity-70"
+                style={{ color: "var(--danger)" }}
               >
-                &#x2715;
+                Remove
               </button>
             </div>
           ))}
@@ -90,14 +119,21 @@ export function Settings() {
               value={newExcludedPath}
               onChange={(e) => setNewExcludedPath(e.target.value)}
               placeholder="Add path to exclude..."
-              className="flex-1 rounded border px-3 py-1.5 text-sm"
-              style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-input)", color: "var(--text-primary)" }}
+              className="flex-1 rounded-xl px-4 py-2.5 text-sm"
+              style={{
+                backgroundColor: "var(--bg-card)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+              }}
               onKeyDown={(e) => e.key === "Enter" && addExcludedPath()}
             />
             <button
               onClick={addExcludedPath}
-              className="rounded border px-3 py-1.5 text-sm transition-colors"
-              style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+              className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all"
+              style={{
+                backgroundColor: "var(--bg-input)",
+                color: "var(--text-primary)",
+              }}
             >
               Add
             </button>
@@ -105,14 +141,11 @@ export function Settings() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Logs</h2>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Log directory: {settings.log_dir}</p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">System</h2>
-        <div className="flex items-center gap-3">
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          System
+        </h2>
+        <div className="flex items-center gap-4">
           <button
             onClick={async () => {
               try {
@@ -121,7 +154,11 @@ export function Settings() {
                 ToastContext.addToast({ type: "error", title: "Failed to restart", detail: String(e) });
               }
             }}
-            className="rounded border border-amber-700 px-4 py-2 text-sm text-amber-300 hover:bg-amber-950"
+            className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all"
+            style={{
+              backgroundColor: "var(--warning-bg)",
+              color: "var(--warning)",
+            }}
           >
             Restart as Administrator
           </button>
@@ -131,10 +168,27 @@ export function Settings() {
         </div>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          Logs
+        </h2>
+        <p className="text-sm font-mono rounded-xl px-4 py-3" style={{
+          backgroundColor: "var(--bg-card)",
+          color: "var(--text-secondary)",
+          border: "1px solid var(--border)"
+        }}>
+          {settings.log_dir}
+        </p>
+      </section>
+
       <button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-emerald-700 px-4 py-2 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+        className="rounded-xl px-6 py-3 text-sm font-medium transition-all disabled:opacity-50"
+        style={{
+          backgroundColor: "var(--success)",
+          color: "#fff",
+        }}
       >
         {saving ? "Saving..." : "Save Settings"}
       </button>
