@@ -73,7 +73,7 @@ pub fn disable_registry_autostart(name: &str, source: &str) -> Result<(), String
 
             let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
             let status = RegDeleteValueW(key_handle, PCWSTR(name_wide.as_ptr()));
-            RegCloseKey(key_handle);
+            let _ = RegCloseKey(key_handle);
             if status != ERROR_SUCCESS {
                 return Err(format!("Failed to delete registry value: {status:?}"));
             }
@@ -144,7 +144,7 @@ pub fn restore_autostart(name: &str) -> Result<(), String> {
                             REG_SZ,
                             Some(data_bytes),
                         );
-                        RegCloseKey(key_handle);
+                        let _ = RegCloseKey(key_handle);
                         if status != ERROR_SUCCESS {
                             return Err(format!("Failed to set registry value: {status:?}"));
                         }

@@ -2,6 +2,7 @@ use crate::models::{AI_KEYWORDS, soft_match};
 
 pub struct TaskEntry {
     pub name: String,
+    #[allow(dead_code)]
     pub path: String,
     pub command: String,
     pub is_ai_related: bool,

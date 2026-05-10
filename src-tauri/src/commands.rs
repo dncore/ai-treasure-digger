@@ -22,6 +22,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(dead_code)]
     pub fn new(app_handle: AppHandle) -> Self {
         let log_dir = std::env::current_exe()
             .unwrap_or_default()

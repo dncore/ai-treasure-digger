@@ -119,6 +119,7 @@ pub const HARD_MATCH_RULES: &[HardMatchRule] = &[
 
 // --- 第二层：软匹配关键词类别 ---
 
+#[allow(dead_code)]
 pub enum KeywordCategory {
     AiModel,    // ollama, llama, gpt, openai, model, inference
     AiApp,      // langchain, chat, bot, agent

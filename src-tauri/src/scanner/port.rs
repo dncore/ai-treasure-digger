@@ -17,7 +17,7 @@ pub fn scan_ports_with_pid() -> (Vec<PortBinding>, HashMap<u32, Vec<PortBinding>
 #[cfg(target_os = "windows")]
 fn scan_ports_raw() -> Vec<PortBinding> {
     use windows::Win32::NetworkManagement::IpHelper::{
-        GetExtendedTcpTable, MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID,
+        GetExtendedTcpTable, MIB_TCPTABLE_OWNER_PID,
         TCP_TABLE_OWNER_PID_ALL,
     };
     use windows::Win32::Foundation::BOOL;
@@ -100,6 +100,7 @@ fn scan_ports_raw() -> Vec<PortBinding> {
     ports
 }
 
+#[allow(dead_code)]
 pub fn scan_ports() -> Vec<PortBinding> {
     scan_ports_raw()
 }

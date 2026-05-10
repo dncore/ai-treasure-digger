@@ -18,7 +18,7 @@ fn get_process_list() -> Vec<ProcessInfo> {
     };
     use windows::Win32::System::ProcessStatus::EnumProcesses;
     use windows::Win32::Foundation::{CloseHandle, MAX_PATH};
-    use windows::core::{PCWSTR, PWSTR};
+    use windows::core::PWSTR;
     use windows::Win32::System::Threading::{PROCESS_NAME_FORMAT, QueryFullProcessImageNameW};
 
     let mut pids = [0u32; 4096];

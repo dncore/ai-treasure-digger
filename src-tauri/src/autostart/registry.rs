@@ -11,7 +11,7 @@ pub struct AutostartEntry {
 pub fn scan_registry_autostart() -> Vec<AutostartEntry> {
     use windows::Win32::System::Registry::{
         RegOpenKeyExW, RegEnumValueW, RegCloseKey, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE,
-        KEY_READ, REG_SZ, REG_VALUE_TYPE,
+        KEY_READ, REG_SZ,
     };
     use windows::core::{PCWSTR, PWSTR};
     use windows::Win32::Foundation::ERROR_SUCCESS;
@@ -65,7 +65,7 @@ pub fn scan_registry_autostart() -> Vec<AutostartEntry> {
                 index += 1;
             }
 
-            RegCloseKey(key_handle);
+            let _ = RegCloseKey(key_handle);
         }
     }
     entries
