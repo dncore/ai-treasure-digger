@@ -10,11 +10,19 @@ pub struct TaskEntry {
 }
 
 #[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW.0);
+    cmd
+}
+
+#[cfg(target_os = "windows")]
 pub fn scan_task_scheduler() -> Vec<TaskEntry> {
-    use std::process::Command;
     let mut entries = Vec::new();
 
-    let output = Command::new("schtasks")
+    let output = hidden_command("schtasks")
         .args(["/query", "/fo", "LIST", "/v"])
         .output();
 

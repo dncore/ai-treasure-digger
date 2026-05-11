@@ -1,10 +1,19 @@
 use crate::models::ServiceType;
 
+/// Create a Command with no visible console window on Windows.
+#[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW.0);
+    cmd
+}
+
 pub fn stop_process(pid: u32) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
-        let output = Command::new("taskkill")
+        let output = hidden_command("taskkill")
             .args(["/PID", &pid.to_string(), "/T", "/F"])
             .output()
             .map_err(|e| format!("Failed to execute taskkill for PID {pid}: {e}"))?;
@@ -42,25 +51,40 @@ pub fn stop_process(pid: u32) -> Result<(), String> {
 }
 
 pub fn stop_docker_container(container_id: &str) -> Result<(), String> {
-    use std::process::Command;
-    let output = Command::new("docker")
-        .args(["stop", container_id])
-        .output()
-        .map_err(|e| format!("Failed to stop container {container_id}: {e}"))?;
+    #[cfg(target_os = "windows")]
+    {
+        let output = hidden_command("docker")
+            .args(["stop", container_id])
+            .output()
+            .map_err(|e| format!("Failed to stop container {container_id}: {e}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("docker stop failed for {container_id}: {stderr}"))
+        }
+    }
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("docker stop failed for {container_id}: {stderr}"))
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::process::Command;
+        let output = Command::new("docker")
+            .args(["stop", container_id])
+            .output()
+            .map_err(|e| format!("Failed to stop container {container_id}: {e}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("docker stop failed for {container_id}: {stderr}"))
+        }
     }
 }
 
 pub fn stop_wsl_instance(name: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
-        let output = Command::new("wsl")
+        let output = hidden_command("wsl")
             .args(["--terminate", name])
             .output()
             .map_err(|e| format!("Failed to stop WSL instance {name}: {e}"))?;
@@ -93,8 +117,7 @@ pub fn stop_service_by_id(id: &str, service_type: &ServiceType) -> Result<(), St
             // Verify process is actually gone
             #[cfg(target_os = "windows")]
             {
-                use std::process::Command;
-                let check = Command::new("tasklist")
+                let check = hidden_command("tasklist")
                     .args(["/FI", &format!("PID eq {pid}"), "/NH"])
                     .output();
                 if let Ok(output) = check {

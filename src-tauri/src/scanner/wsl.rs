@@ -1,11 +1,19 @@
 #[allow(unused_imports)]
 use crate::models::{DetectedService, RiskLevel, ServiceType};
 
+#[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW.0);
+    cmd
+}
+
 pub fn scan_wsl() -> Result<Vec<DetectedService>, String> {
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
-        let output = Command::new("wsl")
+        let output = hidden_command("wsl")
             .args(["--list", "--running", "--verbose"])
             .output()
             .map_err(|e| format!("WSL command failed: {e}"))?;

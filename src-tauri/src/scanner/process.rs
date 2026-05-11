@@ -8,6 +8,18 @@ pub struct ProcessInfo {
     pub exe_path: String,
 }
 
+/// Create a Command with no visible console window on Windows.
+/// Without this, every Command::new("wmic") / Command::new("docker") etc.
+/// flashes a terminal window.
+#[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW.0);
+    cmd
+}
+
 #[cfg(target_os = "windows")]
 fn get_process_list() -> Vec<ProcessInfo> {
     use windows::Win32::System::Threading::{
@@ -125,9 +137,6 @@ pub fn scan_processes(port_map: &HashMap<u32, Vec<PortBinding>>) -> Vec<Detected
             let pid_ports = port_map.get(&proc.pid).cloned().unwrap_or_default();
             let risk = calculate_risk_level(&service_type, &pid_ports, 0.0, 0);
 
-            // Only fetch command_line/working_dir for matching processes —
-            // wmic calls are expensive (~0.5-2s each), so we must not call
-            // them for every process on the system.
             let command_line = get_command_line(proc.pid).unwrap_or_else(|| proc.exe_path.clone());
             let working_dir = get_working_dir(proc.pid).unwrap_or_default();
             let name = extract_name(&command_line, &proc.exe_path);
@@ -177,8 +186,7 @@ fn extract_name(cmdline: &str, exe: &str) -> String {
 
 #[cfg(target_os = "windows")]
 fn get_command_line(pid: u32) -> Option<String> {
-    use std::process::Command;
-    let output = Command::new("wmic")
+    let output = hidden_command("wmic")
         .args(["process", "where", &format!("ProcessId={pid}"), "get", "CommandLine", "/value"])
         .output()
         .ok()?;
@@ -198,8 +206,7 @@ fn get_command_line(_pid: u32) -> Option<String> {
 
 #[cfg(target_os = "windows")]
 fn get_working_dir(pid: u32) -> Option<String> {
-    use std::process::Command;
-    let output = Command::new("wmic")
+    let output = hidden_command("wmic")
         .args(["process", "where", &format!("ProcessId={pid}"), "get", "ExecutablePath", "/value"])
         .output()
         .ok()?;

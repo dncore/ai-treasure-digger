@@ -337,10 +337,12 @@ pub async fn trigger_scan(state: tauri::State<'_, AppState>) -> Result<(), Strin
 pub async fn restart_as_admin() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+        use windows::Win32::System::Threading::CREATE_NO_WINDOW;
         let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-        Command::new("powershell")
+        std::process::Command::new("powershell")
             .args(["-Command", &format!("Start-Process '{}' -Verb RunAs", exe.display())])
+            .creation_flags(CREATE_NO_WINDOW.0)
             .spawn()
             .map_err(|e| format!("Failed to restart as admin: {e}"))?;
         std::process::exit(0);

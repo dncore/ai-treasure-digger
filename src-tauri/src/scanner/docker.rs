@@ -1,11 +1,27 @@
 use crate::models::{DetectedService, RiskLevel, ServiceType};
 
+#[cfg(target_os = "windows")]
+fn hidden_command(program: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+    let mut cmd = std::process::Command::new(program);
+    cmd.creation_flags(CREATE_NO_WINDOW.0);
+    cmd
+}
+
 pub async fn scan_docker() -> Result<Vec<DetectedService>, String> {
-    use std::process::Command;
-    let output = Command::new("docker")
+    #[cfg(target_os = "windows")]
+    let output = {
+        let mut cmd = hidden_command("docker");
+        cmd.args(["ps", "--format", "{{json .}}"]);
+        cmd.output()
+    };
+    #[cfg(not(target_os = "windows"))]
+    let output = std::process::Command::new("docker")
         .args(["ps", "--format", "{{json .}}"])
-        .output()
-        .map_err(|e| format!("Docker command failed: {e}"))?;
+        .output();
+
+    let output = output.map_err(|e| format!("Docker command failed: {e}"))?;
 
     if !output.status.success() {
         return Ok(Vec::new());
