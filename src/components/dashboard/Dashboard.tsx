@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getServices, getResourceSummary, getTopConsumers, onServiceChanged } from "../../lib/api";
+import { ToastContext, useI18n } from "../../App";
 import type { ResourceSummary, DetectedService } from "../../lib/types";
+import type { TranslationKey } from "../../i18n";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -10,7 +12,15 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
+const RISK_KEYS: Record<string, { labelKey: TranslationKey; bgColor: string; textColor: string }> = {
+  Safe: { labelKey: "risk.Safe", bgColor: "var(--success-bg)", textColor: "var(--success)" },
+  Caution: { labelKey: "risk.Caution", bgColor: "var(--warning-bg)", textColor: "var(--warning)" },
+  Danger: { labelKey: "risk.Danger", bgColor: "var(--danger-bg)", textColor: "var(--danger)" },
+  Critical: { labelKey: "risk.Critical", bgColor: "var(--critical-bg)", textColor: "var(--critical)" },
+};
+
 export function Dashboard() {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<ResourceSummary | null>(null);
   const [topConsumers, setTopConsumers] = useState<DetectedService[]>([]);
   const [autostartServices, setAutostartServices] = useState<DetectedService[]>([]);
@@ -63,7 +73,7 @@ export function Dashboard() {
           color: "var(--danger)",
         }}
       >
-        Scan failed: {error}
+        {t("toast.scan_failed")}: {error}
       </div>
     );
   }
@@ -72,29 +82,29 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("dash.title")}</h1>
 
       <div className="grid grid-cols-4 gap-4">
         <StatCard
-          label="Active Services"
+          label={t("dash.active_services")}
           value={String(summary.active_services)}
           icon="◈"
           color="var(--accent)"
         />
         <StatCard
-          label="Ports In Use"
+          label={t("dash.ports_in_use")}
           value={String(summary.ports_in_use)}
           icon="⊕"
           color="#f59e0b"
         />
         <StatCard
-          label="CPU Usage"
+          label={t("dash.cpu_usage")}
           value={summary.total_cpu.toFixed(1) + "%"}
           icon="▧"
           color="#22c55e"
         />
         <StatCard
-          label="Memory Usage"
+          label={t("dash.memory_usage")}
           value={formatBytes(summary.total_memory)}
           icon="▤"
           color="#a855f7"
@@ -104,11 +114,11 @@ export function Dashboard() {
       {topConsumers.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-            Top Resource Consumers
+            {t("dash.top_consumers")}
           </h2>
           <div className="space-y-2">
             {topConsumers.map((s, i) => {
-              const riskConfig = RISK_CONFIG[s.risk_level];
+              const riskConfig = RISK_KEYS[s.risk_level];
               return (
                 <div
                   key={s.id}
@@ -135,7 +145,7 @@ export function Dashboard() {
                         color: riskConfig.textColor,
                       }}
                     >
-                      {riskConfig.label}
+                      {t(riskConfig.labelKey)}
                     </span>
                   </div>
                   <div className="flex gap-6 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
@@ -155,7 +165,7 @@ export function Dashboard() {
             className="text-lg font-semibold mb-4"
             style={{ color: "var(--warning)" }}
           >
-            Autostart Services ({autostartServices.length})
+            {t("dash.autostart_count")} ({autostartServices.length})
           </h2>
           <div className="space-y-2">
             {autostartServices.map((s) => (
@@ -185,7 +195,7 @@ export function Dashboard() {
                     color: "var(--warning)",
                   }}
                 >
-                  autostart
+                  {t("svc.autostart")}
                 </span>
               </div>
             ))}
@@ -228,10 +238,3 @@ function StatCard({
     </div>
   );
 }
-
-const RISK_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  Safe: { label: "Safe", bgColor: "var(--success-bg)", textColor: "var(--success)" },
-  Caution: { label: "Caution", bgColor: "var(--warning-bg)", textColor: "var(--warning)" },
-  Danger: { label: "Danger", bgColor: "var(--danger-bg)", textColor: "var(--danger)" },
-  Critical: { label: "Critical", bgColor: "var(--critical-bg)", textColor: "var(--critical)" },
-};

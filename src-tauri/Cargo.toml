@@ -26,6 +26,8 @@ windows = { version = "0.58", features = [
   "Win32_Security",
   "Win32_System_Com",
   "Win32_Data_Xml",
+  "Win32_System_Console",
+  "Win32_UI_WindowsAndMessaging",
 ] }
 windows-core = "0.58"
 reqwest = { version = "0.12", features = ["json"] }
@@ -33,3 +35,4 @@ chrono = "0.4"
 log = "0.4"
 env_logger = "0.11"
 fern = "0.7"
+once_cell = "1"

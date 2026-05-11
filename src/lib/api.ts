@@ -76,6 +76,16 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   return invoke("save_settings", { settings });
 }
 
+// --- System info ---
+
+export async function isAdmin(): Promise<boolean> {
+  return invoke<boolean>("is_admin");
+}
+
+export async function toggleConsole(show: boolean): Promise<void> {
+  return invoke("toggle_console", { show });
+}
+
 // --- Events ---
 
 export function onServiceChanged(callback: (services: DetectedService[]) => void): Promise<UnlistenFn> {

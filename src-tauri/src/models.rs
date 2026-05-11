@@ -77,6 +77,7 @@ pub struct AppSettings {
     pub refresh_interval_secs: u64,
     pub excluded_paths: Vec<String>,
     pub log_dir: String,
+    pub show_console: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

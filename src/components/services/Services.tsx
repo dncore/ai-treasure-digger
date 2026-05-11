@@ -1,21 +1,22 @@
 import { useEffect, useState, useCallback } from "react";
 import { getServices, stopService, stopServices, disableAutostart, onServiceChanged } from "../../lib/api";
 import { CleanupModal } from "./CleanupModal";
-import { ToastContext } from "../../App";
+import { ToastContext, useI18n } from "../../App";
 import type { DetectedService, ServiceType } from "../../lib/types";
+import type { TranslationKey } from "../../i18n";
 
-const SERVICE_TYPE_CONFIG: Record<ServiceType, { label: string; color: string }> = {
-  NodeProcess: { label: "Node.js", color: "#22c55e" },
-  PythonProcess: { label: "Python", color: "#eab308" },
-  DockerContainer: { label: "Docker", color: "#3b82f6" },
-  WslInstance: { label: "WSL", color: "#a855f7" },
+const SERVICE_TYPE_KEYS: Record<ServiceType, { labelKey: TranslationKey; color: string }> = {
+  NodeProcess: { labelKey: "type.NodeProcess", color: "#22c55e" },
+  PythonProcess: { labelKey: "type.PythonProcess", color: "#eab308" },
+  DockerContainer: { labelKey: "type.DockerContainer", color: "#3b82f6" },
+  WslInstance: { labelKey: "type.WslInstance", color: "#a855f7" },
 };
 
-const RISK_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  Safe: { label: "Safe", bgColor: "var(--success-bg)", textColor: "var(--success)" },
-  Caution: { label: "Caution", bgColor: "var(--warning-bg)", textColor: "var(--warning)" },
-  Danger: { label: "Danger", bgColor: "var(--danger-bg)", textColor: "var(--danger)" },
-  Critical: { label: "Critical", bgColor: "var(--critical-bg)", textColor: "var(--critical)" },
+const RISK_KEYS: Record<string, { labelKey: TranslationKey; bgColor: string; textColor: string }> = {
+  Safe: { labelKey: "risk.Safe", bgColor: "var(--success-bg)", textColor: "var(--success)" },
+  Caution: { labelKey: "risk.Caution", bgColor: "var(--warning-bg)", textColor: "var(--warning)" },
+  Danger: { labelKey: "risk.Danger", bgColor: "var(--danger-bg)", textColor: "var(--danger)" },
+  Critical: { labelKey: "risk.Critical", bgColor: "var(--critical-bg)", textColor: "var(--critical)" },
 };
 
 function formatBytes(bytes: number): string {
@@ -29,6 +30,7 @@ function formatBytes(bytes: number): string {
 type Filter = "all" | ServiceType;
 
 export function Services() {
+  const { t } = useI18n();
   const [services, setServices] = useState<DetectedService[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
@@ -41,11 +43,11 @@ export function Services() {
       const result = await getServices();
       setServices(result);
     } catch (e) {
-      ToastContext.addToast({ type: "error", title: "Scan failed", detail: String(e) });
+      ToastContext.addToast({ type: "error", title: t("toast.scan_failed"), detail: String(e) });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -57,14 +59,14 @@ export function Services() {
     setStopping((prev) => new Set(prev).add(id));
     try {
       await stopService(id);
-      ToastContext.addToast({ type: "success", title: "Service stopped" });
+      ToastContext.addToast({ type: "success", title: t("toast.service_stopped") });
       setSelected((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
     } catch (e) {
-      ToastContext.addToast({ type: "error", title: "Failed to stop", detail: String(e) });
+      ToastContext.addToast({ type: "error", title: t("toast.stop_failed"), detail: String(e) });
     } finally {
       setStopping((prev) => { const n = new Set(prev); n.delete(id); return n; });
     }
@@ -74,22 +76,22 @@ export function Services() {
     try {
       const result = await stopServices(Array.from(selected));
       if (result.failed > 0) {
-        ToastContext.addToast({ type: "warning", title: `${result.succeeded} stopped, ${result.failed} failed` });
+        ToastContext.addToast({ type: "warning", title: t("svc.batch_stop_partial", { n: result.succeeded, m: result.failed }) });
       } else {
-        ToastContext.addToast({ type: "success", title: `${result.succeeded} services stopped` });
+        ToastContext.addToast({ type: "success", title: t("svc.batch_stop_ok", { n: result.succeeded }) });
       }
       setSelected(new Set());
     } catch (e) {
-      ToastContext.addToast({ type: "error", title: "Batch stop failed", detail: String(e) });
+      ToastContext.addToast({ type: "error", title: t("toast.stop_failed"), detail: String(e) });
     }
   }
 
   async function handleDisableAutostart(id: string) {
     try {
       await disableAutostart(id);
-      ToastContext.addToast({ type: "success", title: "Autostart disabled" });
+      ToastContext.addToast({ type: "success", title: t("toast.autostart_disabled") });
     } catch (e) {
-      ToastContext.addToast({ type: "error", title: "Failed to disable autostart", detail: String(e) });
+      ToastContext.addToast({ type: "error", title: t("toast.autostart_disable_failed"), detail: String(e) });
     }
   }
 
@@ -112,19 +114,19 @@ export function Services() {
 
   const filtered = filter === "all" ? services : services.filter((s) => s.service_type === filter);
 
-  const filters: { value: Filter; label: string }[] = [
-    { value: "all", label: "All" },
-    { value: "NodeProcess", label: "Node.js" },
-    { value: "PythonProcess", label: "Python" },
-    { value: "DockerContainer", label: "Docker" },
-    { value: "WslInstance", label: "WSL" },
+  const filters: { value: Filter; labelKey: TranslationKey }[] = [
+    { value: "all", labelKey: "svc.filter_all" },
+    { value: "NodeProcess", labelKey: "type.NodeProcess" },
+    { value: "PythonProcess", labelKey: "type.PythonProcess" },
+    { value: "DockerContainer", labelKey: "type.DockerContainer" },
+    { value: "WslInstance", labelKey: "type.WslInstance" },
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center" style={{ color: "var(--text-muted)" }}>
-          <div className="animate-pulse text-lg">Scanning services...</div>
+          <div className="animate-pulse text-lg">Scanning...</div>
         </div>
       </div>
     );
@@ -133,7 +135,7 @@ export function Services() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight">Services</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{t("svc.title")}</h1>
         <button
           onClick={load}
           className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:scale-105"
@@ -143,7 +145,7 @@ export function Services() {
             border: "1px solid var(--border)",
           }}
         >
-          Refresh
+          {t("svc.refresh")}
         </button>
       </div>
 
@@ -159,7 +161,7 @@ export function Services() {
                 color: filter === f.value ? "var(--text-primary)" : "var(--text-muted)",
               }}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -169,7 +171,7 @@ export function Services() {
             className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors hover:bg-[var(--bg-input)]"
             style={{ color: "var(--text-secondary)" }}
           >
-            {selected.size === filtered.length ? "Deselect all" : "Select all"}
+            {selected.size === filtered.length ? t("svc.deselect_all") : t("svc.select_all")}
           </button>
         )}
       </div>
@@ -183,7 +185,7 @@ export function Services() {
           }}
         >
           <span className="text-sm font-medium" style={{ color: "var(--warning)" }}>
-            {selected.size} selected
+            {selected.size} {t("svc.selected")}
           </span>
           <button
             onClick={handleBatchStop}
@@ -193,7 +195,7 @@ export function Services() {
               color: "#fff",
             }}
           >
-            Stop Selected
+            {t("svc.stop_selected")}
           </button>
           <button
             onClick={() => setSelected(new Set())}
@@ -203,7 +205,7 @@ export function Services() {
               color: "var(--text-secondary)",
             }}
           >
-            Clear
+            {t("svc.clear")}
           </button>
         </div>
       )}
@@ -217,18 +219,26 @@ export function Services() {
             ✓
           </div>
           <p className="text-lg font-medium" style={{ color: "var(--text-secondary)" }}>
-            Your device is clean
+            {t("svc.no_services")}
           </p>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-            No services detected
+            {t("svc.no_services_sub")}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((service) => {
-            const typeConfig = SERVICE_TYPE_CONFIG[service.service_type];
-            const riskConfig = RISK_CONFIG[service.risk_level];
+            const typeConfig = SERVICE_TYPE_KEYS[service.service_type];
+            const riskConfig = RISK_KEYS[service.risk_level];
             const isSelected = selected.has(service.id);
+
+            // Extract port numbers for display
+            const portNumbers = service.ports
+              .map((p) => {
+                const match = p.local_addr.match(/:(\d+)$/);
+                return match ? match[1] : null;
+              })
+              .filter(Boolean) as string[];
 
             return (
               <div
@@ -264,7 +274,7 @@ export function Services() {
                           color: typeConfig.color,
                         }}
                       >
-                        {typeConfig.label}
+                        {t(typeConfig.labelKey)}
                       </span>
 
                       <span
@@ -274,7 +284,7 @@ export function Services() {
                           color: riskConfig.textColor,
                         }}
                       >
-                        {riskConfig.label}
+                        {t(riskConfig.labelKey)}
                       </span>
 
                       {service.is_autostart && (
@@ -285,7 +295,7 @@ export function Services() {
                             color: "var(--warning)",
                           }}
                         >
-                          autostart
+                          {t("svc.autostart")}
                         </span>
                       )}
                     </div>
@@ -298,14 +308,25 @@ export function Services() {
                       {service.command_line}
                     </p>
 
-                    <div className="flex gap-4 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-                      {service.pid && <span>PID: {service.pid}</span>}
-                      <span>CPU: {service.cpu_usage.toFixed(1)}%</span>
-                      <span>MEM: {formatBytes(service.memory_usage)}</span>
-                      <span>DISK: {formatBytes(service.disk_usage)}</span>
-                      {service.ports.length > 0 && (
+                    {/* Working directory — clearly shows project origin */}
+                    {service.working_dir && (
+                      <p
+                        className="text-xs mb-2 truncate font-mono"
+                        style={{ color: "var(--accent)", opacity: 0.85 }}
+                        title={service.working_dir}
+                      >
+                        📁 {service.working_dir}
+                      </p>
+                    )}
+
+                    <div className="flex gap-4 text-xs font-medium flex-wrap" style={{ color: "var(--text-muted)" }}>
+                      {service.pid && <span>{t("svc.pid")}: {service.pid}</span>}
+                      <span>{t("svc.cpu")}: {service.cpu_usage.toFixed(1)}%</span>
+                      <span>{t("svc.mem")}: {formatBytes(service.memory_usage)}</span>
+                      <span>{t("svc.disk")}: {formatBytes(service.disk_usage)}</span>
+                      {portNumbers.length > 0 && (
                         <span style={{ color: "var(--accent)" }}>
-                          {service.ports.length} port{service.ports.length > 1 ? "s" : ""}
+                          {portNumbers.join(", ")}
                         </span>
                       )}
                     </div>
@@ -321,7 +342,7 @@ export function Services() {
                           color: "var(--text-secondary)",
                         }}
                       >
-                        Cleanup
+                        {t("svc.cleanup")}
                       </button>
                     )}
                     {service.is_autostart && (
@@ -333,7 +354,7 @@ export function Services() {
                           color: "var(--warning)",
                         }}
                       >
-                        Disable
+                        {t("svc.disable")}
                       </button>
                     )}
                     <button
@@ -345,7 +366,7 @@ export function Services() {
                         color: "var(--danger)",
                       }}
                     >
-                      {stopping.has(service.id) ? "Stopping..." : "Stop"}
+                      {stopping.has(service.id) ? t("svc.stopping") : t("svc.stop")}
                     </button>
                   </div>
                 </div>

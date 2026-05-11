@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { getSettings, saveSettings, restartAsAdmin } from "../../lib/api";
-import { ToastContext } from "../../App";
+import { getSettings, saveSettings, restartAsAdmin, toggleConsole } from "../../lib/api";
+import { ToastContext, useI18n } from "../../App";
 import type { AppSettings } from "../../lib/types";
+import { type Locale, LOCALE_LABELS } from "../../i18n/locale";
 
 export function Settings() {
+  const { t, locale, setAppLocale } = useI18n();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [newExcludedPath, setNewExcludedPath] = useState("");
@@ -11,17 +13,17 @@ export function Settings() {
   useEffect(() => {
     getSettings()
       .then(setSettings)
-      .catch((e) => ToastContext.addToast({ type: "error", title: "Failed to load settings", detail: String(e) }));
-  }, []);
+      .catch((e) => ToastContext.addToast({ type: "error", title: t("toast.settings_save_failed"), detail: String(e) }));
+  }, [t]);
 
   async function handleSave() {
     if (!settings) return;
     setSaving(true);
     try {
       await saveSettings(settings);
-      ToastContext.addToast({ type: "success", title: "Settings saved" });
+      ToastContext.addToast({ type: "success", title: t("toast.settings_saved") });
     } catch (e) {
-      ToastContext.addToast({ type: "error", title: "Failed to save", detail: String(e) });
+      ToastContext.addToast({ type: "error", title: t("toast.settings_save_failed"), detail: String(e) });
     } finally {
       setSaving(false);
     }
@@ -48,7 +50,7 @@ export function Settings() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg" style={{ color: "var(--text-muted)" }}>
-          Loading settings...
+          Loading...
         </div>
       </div>
     );
@@ -56,15 +58,40 @@ export function Settings() {
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("set.title")}</h1>
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          Scan Settings
+          {t("set.language")}
+        </h2>
+        <div className="flex gap-2">
+          {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setAppLocale(key)}
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-all"
+              style={{
+                backgroundColor: locale === key ? "var(--accent)" : "var(--bg-input)",
+                color: locale === key ? "#fff" : "var(--text-primary)",
+                border: locale === key ? "none" : "1px solid var(--border)",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {t("set.language_sub")}
+        </p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          {t("set.scan")}
         </h2>
         <label className="flex items-center gap-4">
           <span className="w-48 text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-            Refresh Interval
+            {t("set.refresh_interval")}
           </span>
           <input
             type="number"
@@ -82,14 +109,14 @@ export function Settings() {
             }}
           />
           <span className="text-sm" style={{ color: "var(--text-muted)" }}>
-            seconds
+            {t("set.seconds")}
           </span>
         </label>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          Excluded Paths
+          {t("set.excluded_paths")}
         </h2>
         <div className="space-y-2">
           {settings.excluded_paths.map((path, i) => (
@@ -109,7 +136,7 @@ export function Settings() {
                 className="text-sm font-medium transition-colors hover:opacity-70"
                 style={{ color: "var(--danger)" }}
               >
-                Remove
+                {t("set.remove")}
               </button>
             </div>
           ))}
@@ -118,7 +145,7 @@ export function Settings() {
               type="text"
               value={newExcludedPath}
               onChange={(e) => setNewExcludedPath(e.target.value)}
-              placeholder="Add path to exclude..."
+              placeholder={t("set.add_path")}
               className="flex-1 rounded-xl px-4 py-2.5 text-sm"
               style={{
                 backgroundColor: "var(--bg-card)",
@@ -135,7 +162,7 @@ export function Settings() {
                 color: "var(--text-primary)",
               }}
             >
-              Add
+              {t("set.add")}
             </button>
           </div>
         </div>
@@ -143,7 +170,7 @@ export function Settings() {
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          System
+          {t("set.system")}
         </h2>
         <div className="flex items-center gap-4">
           <button
@@ -151,7 +178,7 @@ export function Settings() {
               try {
                 await restartAsAdmin();
               } catch (e) {
-                ToastContext.addToast({ type: "error", title: "Failed to restart", detail: String(e) });
+                ToastContext.addToast({ type: "error", title: t("toast.restart_failed"), detail: String(e) });
               }
             }}
             className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all"
@@ -160,17 +187,49 @@ export function Settings() {
               color: "var(--warning)",
             }}
           >
-            Restart as Administrator
+            {t("set.restart_admin")}
           </button>
           <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Required to stop some processes
+            {t("set.restart_admin_sub")}
           </span>
         </div>
       </section>
 
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          {t("set.console")}
+        </h2>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            className="relative w-10 h-5 rounded-full transition-colors"
+            style={{ backgroundColor: settings.show_console ? "var(--accent)" : "var(--bg-input)" }}
+            onClick={async () => {
+              const next = !settings.show_console;
+              setSettings({ ...settings, show_console: next });
+              try {
+                await toggleConsole(next);
+              } catch {
+                // Non-Windows — ignore
+              }
+            }}
+          >
+            <div
+              className="absolute top-0.5 w-4 h-4 rounded-full transition-transform bg-white"
+              style={{ left: settings.show_console ? "1.25rem" : "0.125rem" }}
+            />
+          </div>
+          <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {t("set.show_console")}
+          </span>
+        </label>
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          {t("set.console_sub")}
+        </p>
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-          Logs
+          {t("set.logs")}
         </h2>
         <p className="text-sm font-mono rounded-xl px-4 py-3" style={{
           backgroundColor: "var(--bg-card)",
@@ -190,7 +249,7 @@ export function Settings() {
           color: "#fff",
         }}
       >
-        {saving ? "Saving..." : "Save Settings"}
+        {saving ? t("set.saving") : t("set.save")}
       </button>
     </div>
   );

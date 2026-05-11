@@ -48,6 +48,7 @@ export interface AppSettings {
   refresh_interval_secs: number;
   excluded_paths: string[];
   log_dir: string;
+  show_console: boolean;
 }
 
 export interface BatchResult {

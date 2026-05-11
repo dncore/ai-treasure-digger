@@ -79,6 +79,8 @@ pub fn run() {
             commands::restart_as_admin,
             commands::get_settings,
             commands::save_settings,
+            commands::toggle_console,
+            commands::is_admin,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

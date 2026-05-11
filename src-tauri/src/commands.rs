@@ -42,6 +42,7 @@ impl AppState {
                 refresh_interval_secs: 5,
                 excluded_paths: Vec::new(),
                 log_dir,
+                show_console: false,
             }),
             app_handle,
         }
@@ -54,6 +55,7 @@ impl AppState {
                 refresh_interval_secs: 5,
                 excluded_paths: Vec::new(),
                 log_dir: std::path::PathBuf::from(data_dir).join("logs").to_string_lossy().to_string(),
+                show_console: false,
             }),
             app_handle,
         }
@@ -380,5 +382,59 @@ impl ExeOrWorkingDir for DetectedService {
         } else {
             String::new()
         }
+    }
+}
+
+#[tauri::command]
+pub async fn toggle_console(show: bool) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::System::Console::GetConsoleWindow;
+        use windows::Win32::UI::WindowsAndMessaging::{ShowWindow, SW_HIDE, SW_SHOW};
+        unsafe {
+            let hwnd = GetConsoleWindow();
+            if !hwnd.is_invalid() {
+                let cmd = if show { SW_SHOW } else { SW_HIDE };
+                let _ = ShowWindow(hwnd, cmd);
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = show;
+        Err("Console toggle is only available on Windows".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn is_admin() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY};
+        use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+        unsafe {
+            let mut token_handle = Default::default();
+            if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token_handle).is_err() {
+                return false;
+            }
+            let mut elevation = TOKEN_ELEVATION::default();
+            let mut returned = 0u32;
+            let ok = GetTokenInformation(
+                token_handle,
+                TokenElevation,
+                Some(&mut elevation as *mut _ as *mut _),
+                std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+                &mut returned,
+            );
+            let _ = windows::Win32::Foundation::CloseHandle(token_handle);
+            ok.is_ok() && elevation.TokenIsElevated != 0
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
     }
 }
